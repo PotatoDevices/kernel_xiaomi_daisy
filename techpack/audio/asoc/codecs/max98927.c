@@ -24,8 +24,8 @@
 #include "max98927.h"
 
 #if 0
-#undef pr_info
-#define pr_info pr_err
+#undef pr_debug
+#define pr_debug pr_err
 
 #undef pr_debug
 #define pr_debug pr_err
@@ -453,10 +453,10 @@ static int max989xx_create_calibfile(void)
 
     pfile = filp_open(CALIBRATE_FILE, O_RDWR | O_CREAT, 0666);
     if (!IS_ERR(pfile)) {
-        pr_info("%s: %s create success! \n", __func__, CALIBRATE_FILE);
+        pr_debug("%s: %s create success! \n", __func__, CALIBRATE_FILE);
         filp_close(pfile, NULL);
     } else {
-        pr_info("%s: %s create failed! \n", __func__, CALIBRATE_FILE);
+        pr_debug("%s: %s create failed! \n", __func__, CALIBRATE_FILE);
         ret = -1;
     }
 
@@ -479,11 +479,11 @@ static int max989xx_calib_save(uint32_t calib_value)
 
     pfile = filp_open(CALIBRATE_FILE, O_RDWR | O_CREAT, 0666);
     if (!IS_ERR(pfile)) {
-        pr_info("%s: save calib_value=%d \n", __func__, calib_value);
+        pr_debug("%s: save calib_value=%d \n", __func__, calib_value);
         vfs_write(pfile, (char *)&calib_value, sizeof(uint32_t), &pos);
         filp_close(pfile, NULL);
     } else {
-        pr_info("%s: %s open failed! \n", __func__, CALIBRATE_FILE);
+        pr_debug("%s: %s open failed! \n", __func__, CALIBRATE_FILE);
         ret = -1;
     }
 
@@ -504,11 +504,11 @@ static int max989xx_calib_save_right(uint32_t calib_value)
 
 	pfile = filp_open(CALIBRATE_FILE_R, O_RDWR | O_CREAT, 0666);
 	if (!IS_ERR(pfile)) {
-		pr_info("%s: save calib_value=%d \n", __func__, calib_value);
+		pr_debug("%s: save calib_value=%d \n", __func__, calib_value);
 		vfs_write(pfile, (char *)&calib_value, sizeof(uint32_t), &pos);
 		filp_close(pfile, NULL);
 	} else {
-		pr_info("%s: %s open failed! \n", __func__, CALIBRATE_FILE_R);
+		pr_debug("%s: %s open failed! \n", __func__, CALIBRATE_FILE_R);
 		ret = -1;
 	}
 
@@ -523,7 +523,7 @@ static bool rdc_check_valid(uint32_t rdc)
         return true;
     }
 
-    pr_info("%s: rdc=%d invalid, [%d, %d] \n", __func__, rdc, RDC_MIN, RDC_MAX);
+    pr_debug("%s: rdc=%d invalid, [%d, %d] \n", __func__, rdc, RDC_MIN, RDC_MAX);
     return false;
 }
 
@@ -539,7 +539,7 @@ static ssize_t max989xx_dbgfs_calibrate_read(struct file *file,
     uint32_t impedance_l, impedance_r;
     char *str;
 
-    pr_info("%s: enter... \n", __func__);
+    pr_debug("%s: enter... \n", __func__);
     mutex_lock(&dsm_lock);
     ret = afe_dsm_pre_calib((uint8_t*)payload);
 	ret |= afe_dsm_get_calib((uint8_t*)payload);
@@ -564,22 +564,22 @@ static ssize_t max989xx_dbgfs_calibrate_read(struct file *file,
 
 		afe_dsm_set_calib((uint8_t *)(payload));
     } else {
-        pr_info("%s failed to calibrate \n", __func__);
+        pr_debug("%s failed to calibrate \n", __func__);
         ret = -EIO;
         goto exit;
     }
 
     str = kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!str) {
-        pr_info("%s failed to kmalloc \n", __func__);
+        pr_debug("%s failed to kmalloc \n", __func__);
         ret = -ENOMEM;
         goto exit;
     }
 
-    pr_info("%s: calibrate [impedance]=%d \n", __func__, impedance_l);
+    pr_debug("%s: calibrate [impedance]=%d \n", __func__, impedance_l);
     ret = snprintf(str, PAGE_SIZE, "%d\n", impedance_l);
 	if (max989xx->mono_stereo == 3) {
-		pr_info("%s: calibrate [impedance_r]=%d \n", __func__, impedance_r);
+		pr_debug("%s: calibrate [impedance_r]=%d \n", __func__, impedance_r);
 		ret += snprintf(str+ret, PAGE_SIZE, "%d\n", impedance_r);
 	}
     ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
@@ -605,7 +605,7 @@ static ssize_t max989xx_dbgfs_impedance_read(struct file *file,
 	afe_dsm_get_calib((uint8_t *)payload);
     impedance = *payload;
     if (!rdc_check_valid(impedance)) {
-        pr_info("%s failed to read impedance. \n", __func__);
+        pr_debug("%s failed to read impedance. \n", __func__);
         ret = -EIO;
         goto exit;
 	}
@@ -613,7 +613,7 @@ static ssize_t max989xx_dbgfs_impedance_read(struct file *file,
 	if (max989xx->mono_stereo == 3) {
 		impedance_r = *(payload + 1);
 		if (!rdc_check_valid(impedance_r)) {
-			pr_info("%s failed to read impedance_r. \n", __func__);
+			pr_debug("%s failed to read impedance_r. \n", __func__);
 			ret = -EIO;
 			goto exit;
 		}
@@ -621,15 +621,15 @@ static ssize_t max989xx_dbgfs_impedance_read(struct file *file,
 
     str = kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!str) {
-        pr_info("%s failed to kmalloc \n", __func__);
+        pr_debug("%s failed to kmalloc \n", __func__);
         ret = -ENOMEM;
         goto exit;
     }
 
-    pr_info("%s: [impedance] = %d \n", __func__, impedance);
+    pr_debug("%s: [impedance] = %d \n", __func__, impedance);
     ret = snprintf(str, PAGE_SIZE, "%d\n", impedance);
 	if (max989xx->mono_stereo == 3) {
-		pr_info("%s: [impedance_r] = %d \n", __func__, impedance_r);
+		pr_debug("%s: [impedance_r] = %d \n", __func__, impedance_r);
 		ret += snprintf(str+ret, PAGE_SIZE, "%d\n", impedance_r);
 	}
     ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
@@ -656,12 +656,12 @@ static ssize_t max989xx_dbgfs_info_read(struct file *file,
 
     str = kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!str) {
-        pr_info("%s failed to kmalloc \n", __func__);
+        pr_debug("%s failed to kmalloc \n", __func__);
         ret = -ENOMEM;
         goto exit;
     }
 
-    pr_info("%s: [average temp] = %d \n", __func__, pInfo->averageTemp[0]);
+    pr_debug("%s: [average temp] = %d \n", __func__, pInfo->averageTemp[0]);
     ret = snprintf(str, PAGE_SIZE, "%d\n", pInfo->averageTemp[0]);
     ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
     kfree(str);
@@ -686,19 +686,19 @@ static ssize_t max989xx_dbgfs_f0_read(struct file *file,
     f0 = *(payload+2);
 	#if 0
     if (!rdc_check_valid(f0)) {
-        pr_info("%s failed to read f0. \n", __func__);
+        pr_debug("%s failed to read f0. \n", __func__);
         ret = -EIO;
         goto exit;
     }
     #endif
     str = kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!str) {
-        pr_info("%s failed to kmalloc \n", __func__);
+        pr_debug("%s failed to kmalloc \n", __func__);
         ret = -ENOMEM;
         goto exit;
     }
 
-    pr_info("%s: [f0] = %d \n", __func__, f0);
+    pr_debug("%s: [f0] = %d \n", __func__, f0);
     ret = snprintf(str, PAGE_SIZE, "%d\n", f0);
     ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
     kfree(str);
@@ -723,11 +723,11 @@ static ssize_t max989xx_dbgfs_temperature_read(struct file *file,
 
 	afe_dsm_get_calib((uint8_t *)payload);
 	coiltemp = *(payload + 4);
-    pr_info("%s: [coiltemp] = %d \n", __func__, coiltemp);
+    pr_debug("%s: [coiltemp] = %d \n", __func__, coiltemp);
 
     str = kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!str) {
-        pr_info("%s failed to kmalloc \n", __func__);
+        pr_debug("%s failed to kmalloc \n", __func__);
         ret = -ENOMEM;
         goto exit;
     }
@@ -814,7 +814,7 @@ static ssize_t max98927_info_show(struct device *dev, struct device_attribute *a
 	afe_dsm_get_libary_info(payload, 100);
 	pInfo = (struct dsm_info_t*) payload;
 
-	pr_info("%s: [average temp] = %d \n", __func__, pInfo->averageTemp[0]);
+	pr_debug("%s: [average temp] = %d \n", __func__, pInfo->averageTemp[0]);
 	ret = snprintf(buf, PAGE_SIZE, "%d\n", pInfo->averageTemp[0]);
 
 	return ret;
@@ -838,7 +838,7 @@ static ssize_t max98927_QFactor_show(struct device *dev, struct device_attribute
 
 	afe_dsm_get_calib((uint8_t *)payload);
 	QFactor = *(payload + 6);
-	pr_info("%s: [QFactor] = %d \n", __func__, QFactor);
+	pr_debug("%s: [QFactor] = %d \n", __func__, QFactor);
 	ret = snprintf(buf, PAGE_SIZE, "%d\n", QFactor);
 
 	return ret;
@@ -862,7 +862,7 @@ static ssize_t max98927_temperature_show(struct device *dev, struct device_attri
 
 	afe_dsm_get_calib((uint8_t *)payload);
 	coiltemp = *(payload + 4);
-	pr_info("%s: [coiltemp] = %d \n", __func__, coiltemp);
+	pr_debug("%s: [coiltemp] = %d \n", __func__, coiltemp);
 	ret = snprintf(buf, PAGE_SIZE, "%d\n", coiltemp);
 
 	return ret;
@@ -888,7 +888,7 @@ static ssize_t max98927_f0_show(struct device *dev, struct device_attribute *att
 	afe_dsm_get_calib((uint8_t *)payload);
 	f0 = *(payload+2);
 
-	pr_info("%s: [f0] = %d \n", __func__, f0);
+	pr_debug("%s: [f0] = %d \n", __func__, f0);
 	ret = snprintf(buf, PAGE_SIZE, "%d\n", f0);
 
 	return ret;
@@ -914,11 +914,11 @@ static ssize_t max98927_impedance_show(struct device *dev, struct device_attribu
 	afe_dsm_get_calib((uint8_t *)payload);
 	impedance = *payload;
 	if (!rdc_check_valid(impedance)) {
-		pr_info("%s failed to read impedance. \n", __func__);
+		pr_debug("%s failed to read impedance. \n", __func__);
 		impedance = 0xCACACACA;
 	}
 
-	pr_info("%s: [impedance] = %d \n", __func__, impedance);
+	pr_debug("%s: [impedance] = %d \n", __func__, impedance);
 	ret = snprintf(buf, PAGE_SIZE, "%d\n", impedance);
 
 	return ret;
@@ -945,7 +945,7 @@ static ssize_t max98927_calibrate_show(struct device *dev, struct device_attribu
 
 
 
-    pr_info("%s: enter... \n", __func__);
+    pr_debug("%s: enter... \n", __func__);
     mutex_lock(&dsm_lock);
     ret = afe_dsm_pre_calib((uint8_t*)payload);
 	ret |= afe_dsm_get_calib((uint8_t*)payload);
@@ -978,15 +978,15 @@ static ssize_t max98927_calibrate_show(struct device *dev, struct device_attribu
 #if 0
     str = kmalloc(PAGE_SIZE, GFP_KERNEL);
     if (!str) {
-        pr_info("%s failed to kmalloc \n", __func__);
+        pr_debug("%s failed to kmalloc \n", __func__);
         ret = -ENOMEM;
         goto exit;
     }
 
-    pr_info("%s: calibrate [impedance]=%d \n", __func__, impedance_l);
+    pr_debug("%s: calibrate [impedance]=%d \n", __func__, impedance_l);
     ret = snprintf(str, PAGE_SIZE, "%d\n", impedance_l);
 		if (max989xx->mono_stereo == 3) {
-			pr_info("%s: calibrate [impedance_r]=%d \n", __func__, impedance_r);
+			pr_debug("%s: calibrate [impedance_r]=%d \n", __func__, impedance_r);
 			ret += snprintf(str+ret, PAGE_SIZE, "%d\n", impedance_r);
 		}
 #endif
@@ -1082,10 +1082,10 @@ static int max989xx_calib_get(uint32_t *calib_value)
 	if (!IS_ERR_OR_NULL(pfile)) {
 		found = 1;
 		vfs_read(pfile, (char *)calib_value, sizeof(uint32_t), &pos);
-		pr_info("%s get calib_value %d  \n", __func__, *calib_value);
+		pr_debug("%s get calib_value %d  \n", __func__, *calib_value);
 		filp_close(pfile, NULL);
 	} else {
-		pr_info("%s No found\n", __func__);
+		pr_debug("%s No found\n", __func__);
 		found = 0;
 	}
 
@@ -1109,10 +1109,10 @@ static int max989xx_calib_get_r(uint32_t *calib_value)
 	if (!IS_ERR_OR_NULL(pfile)) {
 		found = 1;
 		vfs_read(pfile, (char *)calib_value, sizeof(uint32_t), &pos);
-		pr_info("%s get calib_value %d  \n", __func__, *calib_value);
+		pr_debug("%s get calib_value %d  \n", __func__, *calib_value);
 		filp_close(pfile, NULL);
 	} else {
-		pr_info("%s No found\n", __func__);
+		pr_debug("%s No found\n", __func__);
 		found = 0;
 	}
 
@@ -1200,7 +1200,7 @@ static int max98927_reg_put_w(struct snd_kcontrol *kcontrol,
 	val = val << shift;
 
 	max98927_wrap_update_bits(max98927, reg, mask, val);
-	pr_info("%s: register 0x%02X, value 0x%02X\n",
+	pr_debug("%s: register 0x%02X, value 0x%02X\n",
 			__func__, reg, val);
 	return 0;
 }
@@ -1227,7 +1227,7 @@ static int max98927_reg_put(struct snd_kcontrol *kcontrol,
 
 	unsigned int sel = ucontrol->value.integer.value[0];
 	max98927_wrap_update_bits(max98927, reg, mask, sel << shift);
-	pr_info("%s: register 0x%02X, value 0x%02X\n",
+	pr_debug("%s: register 0x%02X, value 0x%02X\n",
 			__func__, reg, sel);
 	return 0;
 }
@@ -1238,7 +1238,7 @@ static int max98927_dai_set_fmt(struct snd_soc_dai *codec_dai,
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct max98927_priv *max98927 = snd_soc_codec_get_drvdata(codec);
 
-	pr_info("%s: fmt 0x%08X\n", __func__, fmt);
+	pr_debug("%s: fmt 0x%08X\n", __func__, fmt);
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 		case SND_SOC_DAIFMT_CBS_CFS:
 			max98927_wrap_update_bits(max98927, MAX98927_PCM_Master_Mode,
@@ -1257,7 +1257,7 @@ static int max98927_dai_set_fmt(struct snd_soc_dai *codec_dai,
 					MAX98927_PCM_Master_Mode_PCM_MSTR_MODE_HYBRID);
 			break;
 		default:
-			pr_info("DAI clock mode unsupported");
+			pr_debug("DAI clock mode unsupported");
 			return -EINVAL;
 	}
 
@@ -1273,7 +1273,7 @@ static int max98927_dai_set_fmt(struct snd_soc_dai *codec_dai,
 					MAX98927_PCM_Mode_Config_PCM_BCLKEDGE);
 			break;
 		default:
-			pr_info("DAI invert mode unsupported");
+			pr_debug("DAI invert mode unsupported");
 			return -EINVAL;
 	}
 
@@ -1343,7 +1343,7 @@ static int max98927_set_clock(struct max98927_priv *max98927,
 			return -EINVAL;
 	}
 
-	pr_info("%s: BLCK fix to %d\n", __func__, blr_clk_ratio);
+	pr_debug("%s: BLCK fix to %d\n", __func__, blr_clk_ratio);
 	max98927_wrap_update_bits(max98927,
 			reg, mask, value);
 	return 0;
@@ -1384,7 +1384,7 @@ static int max98927_dai_hw_params(struct snd_pcm_substream *substream,
 					__func__, params_format(params));
 			goto err;
 	}
-	pr_info("%s: format supported %d",
+	pr_debug("%s: format supported %d",
 			__func__, max98927->ch_size);
 
 	switch (params_rate(params)) {
@@ -1456,7 +1456,7 @@ static int max98927_dai_set_sysclk(struct snd_soc_dai *dai,
 {
 	struct snd_soc_codec *codec = dai->codec;
 	struct max98927_priv *max98927 = snd_soc_codec_get_drvdata(codec);
-	pr_info("%s: clk_id %d, freq %d, dir %d\n", __func__, clk_id, freq, dir);
+	pr_debug("%s: clk_id %d, freq %d, dir %d\n", __func__, clk_id, freq, dir);
 
 	max98927->sysclk = freq;
 	return 0;
@@ -1470,7 +1470,7 @@ static int max98927_stream_mute(struct snd_soc_dai *codec_dai, int mute, int str
 	int rc = 0;
 	uint32_t impedance = 0;
 
-	pr_info("%s--- stream %d, mute %d \n", __func__, stream, mute);
+	pr_debug("%s--- stream %d, mute %d \n", __func__, stream, mute);
 
     if (!max98927) {
         pr_err("%s ------ priv data null pointer\n", __func__);
@@ -1484,7 +1484,7 @@ static int max98927_stream_mute(struct snd_soc_dai *codec_dai, int mute, int str
 			max98927_wrap_update_bits(max98927, MAX98927_Global_Enable, MAX98927_Global_Enable_EN, 0);
 			max98927_wrap_update_bits(max98927, MAX98927_AMP_enables, MAX98927_AMP_enables, 0);
 			max98927->spk_mode = 0;
-			pr_info("%s ------ disable max98927 playback \n", __func__);
+			pr_debug("%s ------ disable max98927 playback \n", __func__);
 		} else {
 #if 0
 
@@ -1521,13 +1521,13 @@ static int max98927_stream_mute(struct snd_soc_dai *codec_dai, int mute, int str
 				max98927_wrap_update_bits(max98927, MAX98927_Global_Enable, MAX98927_Global_Enable_EN, 1);
 			}
 
-			pr_info("%s ------ enable max98927 playback \n", __func__);
+			pr_debug("%s ------ enable max98927 playback \n", __func__);
 		}
 	} else if (stream == SNDRV_PCM_STREAM_CAPTURE) {
 		if (mute) {
 			/* max98927_wrapper_write(max98927, MAX98927_Measurement_enables, 0x0); */
 			max98927->path_status = 0;
-			pr_info("%s ------ disable max98927 capture\n", __func__);
+			pr_debug("%s ------ disable max98927 capture\n", __func__);
 		} else {
 			max98927_wrapper_write(max98927, MAX98927_Measurement_enables, 0x3);
 			max98927->path_status |= i2c_states;
@@ -1536,7 +1536,7 @@ static int max98927_stream_mute(struct snd_soc_dai *codec_dai, int mute, int str
 					rc = max989xx_calib_get(&impedance);
 					if (rdc_check_valid(impedance) || impedance == 0xCACACACA) {
 						max98927->ref_RDC[MAX98927L] = impedance;
-						pr_info("%s: ref_RDC left =%d \n", __func__,  max98927->ref_RDC[MAX98927L]);
+						pr_debug("%s: ref_RDC left =%d \n", __func__,  max98927->ref_RDC[MAX98927L]);
 					}
 				}
 			}
@@ -1546,7 +1546,7 @@ static int max98927_stream_mute(struct snd_soc_dai *codec_dai, int mute, int str
 					rc = max989xx_calib_get_r(&impedance);
 					if (rdc_check_valid(impedance) || impedance == 0xCACACACA) {
 						max98927->ref_RDC[MAX98927R] = impedance;
-						pr_info("%s: ref_RDC right=%d \n", __func__, max98927->ref_RDC[MAX98927R]);
+						pr_debug("%s: ref_RDC right=%d \n", __func__, max98927->ref_RDC[MAX98927R]);
 					}
 				}
 			}
@@ -1557,7 +1557,7 @@ static int max98927_stream_mute(struct snd_soc_dai *codec_dai, int mute, int str
 			afe_dsm_set_calib((uint8_t *)payload);
 
 			mutex_unlock(&dsm_lock);
-			pr_info("%s ------ enable max98927 capture\n", __func__);
+			pr_debug("%s ------ enable max98927 capture\n", __func__);
 		}
 	}
 
@@ -1585,7 +1585,7 @@ static int max98927_feedforward_event(struct snd_soc_dapm_widget *w,
 		pr_err("%s------priv data null pointer\n", __func__);
 		return ret;
 	}
-	pr_info("%s---feedforward event %d\n", __func__, event);
+	pr_debug("%s---feedforward event %d\n", __func__, event);
 	switch(event){
 		case SND_SOC_DAPM_POST_PMU:
 			break;
@@ -1612,7 +1612,7 @@ static int max98927_feedback_event(struct snd_soc_dapm_widget *w,
 		pr_err("%s------priv data null pointer\n", __func__);
 		return ret;
 	}
-	pr_info("%s---feedback event %d\n", __func__, event);
+	pr_debug("%s---feedback event %d\n", __func__, event);
 	switch(event){
 		case SND_SOC_DAPM_POST_PMU:
 			/* max98927_wrapper_write(max98927, MAX98927_Measurement_enables, 0x3); */
@@ -1649,7 +1649,7 @@ static int max98927_spk_gain_get(struct snd_kcontrol *kcontrol,
 	struct max98927_priv *max98927 = snd_soc_codec_get_drvdata(codec);
 
 	ucontrol->value.integer.value[0] = max98927->spk_gain;
-	pr_info("max98927_spk_gain_get: spk_gain setting returned %d\n",
+	pr_debug("max98927_spk_gain_get: spk_gain setting returned %d\n",
 			(int) ucontrol->value.integer.value[0]);
 
 	return 0;
@@ -1661,7 +1661,7 @@ static int max98927_spk_gain_put(struct snd_kcontrol *kcontrol,
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct max98927_priv *max98927 = snd_soc_codec_get_drvdata(codec);
 	unsigned int sel = ucontrol->value.integer.value[0];
-	pr_info("max98927_spk_gain_put: %d\n",sel);
+	pr_debug("max98927_spk_gain_put: %d\n",sel);
 
 	if (sel < ((1 << MAX98927_Speaker_Gain_Width) - 1)) {
 		/* max98927_wrap_update_bits(max98927, MAX98927_Speaker_Gain, */
@@ -1678,7 +1678,7 @@ static int max98927_digital_gain_get(struct snd_kcontrol *kcontrol,
 	struct max98927_priv *max98927 = snd_soc_codec_get_drvdata(codec);
 
 	ucontrol->value.integer.value[0] = max98927->digital_gain;
-	pr_info("%s: spk_gain setting returned %d\n", __func__,
+	pr_debug("%s: spk_gain setting returned %d\n", __func__,
 			(int) ucontrol->value.integer.value[0]);
 	return 0;
 }
@@ -1689,7 +1689,7 @@ static int max98927_digital_gain_put(struct snd_kcontrol *kcontrol,
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct max98927_priv *max98927 = snd_soc_codec_get_drvdata(codec);
 	unsigned int sel = ucontrol->value.integer.value[0];
-	pr_info("max98927_digital_gain_put: %d\n",sel);
+	pr_debug("max98927_digital_gain_put: %d\n",sel);
 
 	if (sel <= ((1 << MAX98927_AMP_VOL_WIDTH) - 1)) {
 		/* max98927_wrap_update_bits(max98927, MAX98927_AMP_volume_control, */
@@ -1765,7 +1765,7 @@ static int max98927_mono_out_get_l(struct snd_kcontrol *kcontrol,
 		regmap_read(max98927->regmap[MAX98927L], MAX98927_PCM_to_speaker_monomix_A, &data);
 		ucontrol->value.integer.value[0] =
 			(data & MAX98927_PCM_to_speaker_monomix_A_DMONOMIX_CH0_SOURCE_Mask);
-		pr_info("%s: value:%d", __func__, data);
+		pr_debug("%s: value:%d", __func__, data);
     }
 
 	return 0;
@@ -1783,7 +1783,7 @@ static int max98927_mono_out_put_l(struct snd_kcontrol *kcontrol,
 				MAX98927_PCM_to_speaker_monomix_A_DMONOMIX_CH0_SOURCE_Mask, sel);
 		regmap_update_bits(max98927->regmap[MAX98927L], MAX98927_PCM_Rx_Enables_A,
 				0xf, sel+1);
-		pr_info("%s: register 0x%02X, value 0x%02X\n",
+		pr_debug("%s: register 0x%02X, value 0x%02X\n",
 				__func__, MAX98927_PCM_to_speaker_monomix_A, sel);
 	}
 
@@ -1802,7 +1802,7 @@ static int max98927_mono_out_get_r(struct snd_kcontrol *kcontrol,
 		ucontrol->value.integer.value[0] =
 			(data & MAX98927_PCM_to_speaker_monomix_A_DMONOMIX_CH0_SOURCE_Mask);
 	}
-	pr_info("%s: value:%d", __func__, data);
+	pr_debug("%s: value:%d", __func__, data);
 	return 0;
 }
 
@@ -1816,10 +1816,10 @@ static int max98927_mono_out_put_r(struct snd_kcontrol *kcontrol,
 		regmap_update_bits(max98927->regmap[MAX98927R], MAX98927_PCM_to_speaker_monomix_A,
 				MAX98927_PCM_to_speaker_monomix_A_DMONOMIX_CH0_SOURCE_Mask, sel);
 		regmap_update_bits(max98927->regmap[MAX98927R], MAX98927_PCM_Rx_Enables_A, 0xf, sel+1);
-		pr_info("%s: register 0x%02X, value 0x%02X\n",
+		pr_debug("%s: register 0x%02X, value 0x%02X\n",
 				__func__, MAX98927_PCM_to_speaker_monomix_A, sel);
 	} else {
-		pr_info("%s: mono mode not support!!\n", __func__);
+		pr_debug("%s: mono mode not support!!\n", __func__);
 	}
 	return 0;
 }
@@ -1834,7 +1834,7 @@ static int max98927_feedback_en_get_l(struct snd_kcontrol *kcontrol,
 	if (i2c_states & MAX98927_CH0){
 		regmap_read(max98927->regmap[MAX98927L], MAX98927_Measurement_enables, &data);
 		ucontrol->value.integer.value[0] = data;
-		pr_info("%s: value:%d", __func__, data);
+		pr_debug("%s: value:%d", __func__, data);
 	}
 
 	return 0;
@@ -1849,7 +1849,7 @@ static int max98927_feedback_en_put_l(struct snd_kcontrol *kcontrol,
 
 	if (i2c_states & MAX98927_CH0){
 		regmap_write(max98927->regmap[MAX98927L], MAX98927_Measurement_enables, sel);
-		pr_info("%s: register 0x%02X, value 0x%02X\n",
+		pr_debug("%s: register 0x%02X, value 0x%02X\n",
 			__func__, MAX98927_Measurement_enables, sel);
 	}
 	return 0;
@@ -1866,7 +1866,7 @@ static int max98927_feedback_en_get_r(struct snd_kcontrol *kcontrol,
 		regmap_read(max98927->regmap[MAX98927R], MAX98927_Measurement_enables, &data);
 		ucontrol->value.integer.value[0] = data;
 	}
-	pr_info("%s: value:%d", __func__, data);
+	pr_debug("%s: value:%d", __func__, data);
 	return 0;
 }
 
@@ -1878,10 +1878,10 @@ static int max98927_feedback_en_put_r(struct snd_kcontrol *kcontrol,
 	unsigned int sel = ucontrol->value.integer.value[0];
 	if (i2c_states & MAX98927_CH1){
 		regmap_write(max98927->regmap[MAX98927R], MAX98927_Measurement_enables, sel);
-		pr_info("%s: register 0x%02X, value 0x%02X\n",
+		pr_debug("%s: register 0x%02X, value 0x%02X\n",
 				__func__, MAX98927_Measurement_enables, sel);
 	} else {
-		pr_info("%s: mono mode not support!!\n", __func__);
+		pr_debug("%s: mono mode not support!!\n", __func__);
 	}
 	return 0;
 }
@@ -1893,7 +1893,7 @@ static int max98927_adsp_mode_get(struct snd_kcontrol *kcontrol,
 	struct max98927_priv *max98927 = snd_soc_codec_get_drvdata(codec);
 
     ucontrol->value.integer.value[0] = max98927->adsp_mode;
-	pr_info("%s: value:%d", __func__, (int)ucontrol->value.integer.value[0]);
+	pr_debug("%s: value:%d", __func__, (int)ucontrol->value.integer.value[0]);
 	return 0;
 }
 
@@ -1915,7 +1915,7 @@ static int max98927_adsp_mode_put(struct snd_kcontrol *kcontrol,
 
 	mutex_unlock(&dsm_lock);
 
-    pr_info("%s: value 0x%02X\n", __func__, sel);
+    pr_debug("%s: value 0x%02X\n", __func__, sel);
 	return 0;
 }
 
@@ -1935,7 +1935,7 @@ static int max98927_left_channel_enable_get(struct snd_kcontrol *kcontrol,
 			& (data_amp & MAX98927_AMP_enables_SPK_EN);
 	}
 
-	pr_info("%s: value:%d", __func__, (int)ucontrol->value.integer.value[0]);
+	pr_debug("%s: value:%d", __func__, (int)ucontrol->value.integer.value[0]);
 	return 0;
 }
 
@@ -1948,7 +1948,7 @@ static int max98927_left_channel_enable_set(struct snd_kcontrol *kcontrol,
 	max98927->spk_mode &= ~0x1;
 	max98927->spk_mode |= sel;
 
-	pr_info("%s: register 0x%02X, value 0x%02X\n",
+	pr_debug("%s: register 0x%02X, value 0x%02X\n",
 			__func__, MAX98927_Global_Enable, sel);
 	return 0;
 }
@@ -1968,7 +1968,7 @@ static int max98927_right_channel_enable_get(struct snd_kcontrol *kcontrol,
 			& (data_amp & MAX98927_AMP_enables_SPK_EN);
 	}
 
-	pr_info("%s: value:%d", __func__, (int)ucontrol->value.integer.value[0]);
+	pr_debug("%s: value:%d", __func__, (int)ucontrol->value.integer.value[0]);
 	return 0;
 }
 
@@ -1980,7 +1980,7 @@ static int max98927_right_channel_enable_set(struct snd_kcontrol *kcontrol,
 	unsigned int sel = ucontrol->value.integer.value[0];
 	max98927->spk_mode &= ~0x2;
 	max98927->spk_mode |= sel<<0x1;
-	pr_info("%s: register 0x%02X, value 0x%02X\n",
+	pr_debug("%s: register 0x%02X, value 0x%02X\n",
 				__func__, MAX98927_Global_Enable, sel);
 	return 0;
 }
@@ -2143,7 +2143,7 @@ static int max98927_probe(struct snd_soc_codec *codec)
 	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
 
 
-	pr_info("%s: enter\n", __func__);
+	pr_debug("%s: enter\n", __func__);
 
 	max98927->codec = codec;
 	snd_soc_dapm_ignore_suspend(dapm, "MAX98927_OUT");
@@ -2189,7 +2189,7 @@ static int max98927_reset(struct i2c_client *i2c, struct max98927_priv *max98927
 {
     int ret = 0;
  	max98927->reset_gpio_l = of_get_named_gpio(i2c->dev.of_node, "maxim,98927-reset-gpio", 0);
-	pr_info("max98927_reset:%d------\n", max98927->reset_gpio_l);
+	pr_debug("max98927_reset:%d------\n", max98927->reset_gpio_l);
 
     if (max98927->reset_gpio_l > 0){
 		ret = gpio_request(max98927->reset_gpio_l, "max_98927_reset");
@@ -2222,7 +2222,7 @@ static bool check_max98927_presence(struct regmap *regmap)
 		pr_err("Failed reading version=%u rc=%d\n", reg, rc);
 		return false;
 	}else{
-		pr_info("max98927 device version 0x%02X\n", reg);
+		pr_debug("max98927 device version 0x%02X\n", reg);
 		return true;
 	}
 }
@@ -2245,7 +2245,7 @@ static int max98927_i2c_probe(struct i2c_client *i2c,
 		max98927 = devm_kzalloc(&i2c->dev,
 				sizeof(*max98927), GFP_KERNEL);
 		if (!max98927) {
-			pr_info("------%s devm_kzalloc error!!\n", __func__);
+			pr_debug("------%s devm_kzalloc error!!\n", __func__);
 			return -ENOMEM;
 		}
 	}
@@ -2259,7 +2259,7 @@ static int max98927_i2c_probe(struct i2c_client *i2c,
 
 	if (!of_property_read_u32(i2c->dev.of_node, "interleave_mode", &value)) {
 		if (value > 1) {
-			pr_info("interleave number is wrong:\n");
+			pr_debug("interleave number is wrong:\n");
 		}
 		max98927->interleave_mode = value;
 	}
@@ -2355,7 +2355,7 @@ static int max98927_i2c_probe(struct i2c_client *i2c,
 				return ret;
 			}
 			max98927->dev = &i2c->dev;
-			pr_info("max98927 register codec ok.\n");
+			pr_debug("max98927 register codec ok.\n");
 #ifdef USE_DSM_MISC_DEV
 			ret = misc_register(&dsm_ctrl_miscdev);
 			if (ret != 0)
